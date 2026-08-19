@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Mapify design tokens — spec/01 §2.
+ *
+ * Two brand hues, used for different jobs and never interchangeably:
+ *   primary   (sunset orange)  = forward motion, active, in progress
+ *   secondary (red-violet)     = depth, completed, featured
+ *
+ * Dark mode is not an inversion: the neutrals carry a violet undertone so the
+ * brand hues read as native to the surface rather than sitting on top of slate.
+ */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 315 18.2% 8.6%; /* #1A1218 — near-black, violet undertone */
+
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 315 18.2% 8.6%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 315 18.2% 8.6%;
+
+    --muted: 12 100% 97.1%; /* #FFF3F0 */
+    --muted-foreground: 342.4 8.6% 38.6%; /* #6B5A5F */
+
+    --primary: 7.3 100% 62.7%; /* #FF5841 */
+    /* Spec §2 lists #FFFFFF here, but white on #FF5841 is 3.12:1 and fails the
+       AA gate spec §8 requires. The brand orange is unchanged; only the ink on
+       top of it is, to the spec's own foreground: 5.88:1. */
+    --primary-foreground: 315 18.2% 8.6%;
+    /* Same hue, darkened until orange-as-small-text clears AA on white
+       (4.94:1). Used for text and icons, never for fills. */
+    --primary-strong: 8.4 71.7% 47.1%; /* #CE3A22 */
+
+    --secondary: 332.3 57% 49.2%; /* #C53678 */
+    --secondary-foreground: 0 0% 100%; /* 5.03:1 — passes as specified */
+
+    --accent: 14.5 87.9% 93.5%; /* #FDE7E0 */
+    --accent-foreground: 315 18.2% 8.6%;
+
+    --destructive: 349.5 74% 43.7%; /* #C21D3A — deepened from the same warm family */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 346.7 37.5% 90.6%; /* #F0DEE2 — warm-tinted, not neutral gray */
+    --input: 346.7 37.5% 90.6%;
+    --ring: 7.3 100% 62.7%; /* #FF5841 */
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 326.7 29% 6.1%; /* #140B10 */
+    --foreground: 345 28.6% 94.5%; /* #F5EDEF */
+
+    --card: 332.7 24.4% 8.8%; /* #1C1116 */
+    --card-foreground: 345 28.6% 94.5%;
+    --popover: 332.7 24.4% 8.8%;
+    --popover-foreground: 345 28.6% 94.5%;
+
+    --muted: 312 26.3% 11.2%; /* #241521 */
+    --muted-foreground: 335.5 13.4% 67.8%; /* #B8A2AB */
+
+    --primary: 8.1 100% 66.5%; /* #FF6B54 */
+    --primary-foreground: 326.7 29% 6.1%; /* 6.90:1 */
+    --primary-strong: 8.1 100% 66.5%; /* dark mode needs no darkened variant */
+
+    --secondary: 331.9 68.4% 59%; /* #DE4F92 */
+    --secondary-foreground: 326.7 29% 6.1%; /* 5.20:1 */
+
+    --accent: 328.8 37.3% 13.1%; /* #2E1522 */
+    --accent-foreground: 345 28.6% 94.5%;
+
+    --destructive: 349 84.5% 67.1%; /* #F2647E */
+    --destructive-foreground: 326.7 29% 6.1%;
+
+    --border: 315.8 26% 14.3%; /* #2E1B29 */
+    --input: 315.8 26% 14.3%;
+    --ring: 8.1 100% 66.5%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11' 1;
+  }
+
+  /* Display face is set tight and heavy; it only ever appears at large sizes. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-[-0.02em];
+  }
+}
+
+@layer utilities {
+  /* Waypoint labels: eyebrows, step counters, percentages. Mono because they
+     are read as coordinates along a route, not as prose. */
+  .type-waypoint {
+    @apply font-mono text-[0.6875rem] font-medium uppercase tracking-[0.12em];
+  }
+}
+
+/* The theme swap animates only the surfaces, never layout or text. */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-transition,
+  .theme-transition * {
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

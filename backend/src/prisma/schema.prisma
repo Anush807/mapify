@@ -1,0 +1,48 @@
+// Mapify — Prisma schema
+// Roadmap tree lives in `Roadmap.content` (JSONB); everything relational stays in tables.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime   @default(now())
+  roadmaps     Roadmap[]
+  progress     Progress[]
+}
+
+model Roadmap {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     String
+  content   Json // validated RoadmapSchema tree
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  progress  Progress[]
+
+  @@index([userId])
+}
+
+model Progress {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmapId    String
+  roadmap      Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  completedIds String[] // node ids from Roadmap.content marked complete
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, roadmapId])
+}
