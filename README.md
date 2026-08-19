@@ -72,10 +72,15 @@ Auth routes are public; every roadmap route requires a valid JWT and is scoped t
 its owner.
 
 ```
-POST   /api/auth/signup            { email, password, name? } -> { user, token }
+POST   /api/auth/signup            { email, password, confirmPassword } -> { user, token }
 POST   /api/auth/login             { email, password }        -> { user, token }
 POST   /api/auth/logout            -> clears the cookie
 GET    /api/auth/me                -> { user }   (rehydrates the client on reload)
+
+GET    /api/auth/google            -> starts the OAuth redirect (503 if unconfigured)
+GET    /api/auth/google/callback   -> links or creates the user, sets the cookie
+GET    /api/auth/verify-email?token=...     -> marks the address verified (single use)
+POST   /api/auth/resend-verification        -> { email? }; session works too
 
 POST   /api/roadmaps               { topic }     -> generates, validates, persists
 GET    /api/roadmaps               -> the current user's roadmaps + progress counts
@@ -121,7 +126,8 @@ reads a React internal that React 19 removed, so it renders a blank page there.
 | `/new` | Generate a roadmap from a topic |
 | `/dashboard` | Your saved roadmaps |
 | `/roadmap/:id` | One roadmap, with progress tracking |
-| `/login`, `/signup` | Auth |
+| `/login`, `/signup` | Auth — email/password or Google |
+| `/verify-email` | Landing page for the emailed verification link |
 
 ## The roadmap tree
 

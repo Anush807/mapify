@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { VerifyEmailBanner } from '@/components/auth/VerifyEmailBanner';
 import { authAtom, authReadyAtom } from '@/atoms/authAtom';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -94,6 +95,8 @@ export function Layout() {
           </nav>
         </div>
       </header>
+
+      <VerifyEmailBanner />
 
       <main className="flex-1">
         <Outlet />

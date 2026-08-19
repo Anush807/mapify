@@ -13,13 +13,23 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
+  id           String  @id @default(cuid())
+  email        String  @unique
+  // Null for Google-only accounts — they never set a password.
+  passwordHash String?
+  googleId     String? @unique
   name         String?
-  createdAt    DateTime   @default(now())
-  roadmaps     Roadmap[]
-  progress     Progress[]
+
+  emailVerified Boolean @default(false)
+  // Stores the SHA-256 of the token, never the token itself: a DB leak must not
+  // hand out working verification links. Deterministic hash (not bcrypt) so the
+  // incoming token can be looked up directly instead of scanning every user.
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+
+  createdAt DateTime   @default(now())
+  roadmaps  Roadmap[]
+  progress  Progress[]
 }
 
 model Roadmap {

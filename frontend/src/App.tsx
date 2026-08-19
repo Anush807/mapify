@@ -9,6 +9,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { RoadmapPage } from '@/pages/RoadmapPage';
 import { Login } from '@/pages/Login';
 import { Signup } from '@/pages/Signup';
+import { VerifyEmail } from '@/pages/VerifyEmail';
 import { authAtom, authReadyAtom } from '@/atoms/authAtom';
 import { api } from '@/lib/api';
 
@@ -38,10 +39,13 @@ export default function App() {
       {/* The landing page brings its own nav and footer, so it sits outside Layout. */}
       <Route index element={<Landing />} />
 
+      {/* Auth screens are a centered card on their own — no app chrome. */}
+      <Route path="login" element={<Login />} />
+      <Route path="signup" element={<Signup />} />
+      <Route path="verify-email" element={<VerifyEmail />} />
+
       <Route element={<Layout />}>
         <Route path="new" element={<Home />} />
-        <Route path="login" element={<Login />} />
-        <Route path="signup" element={<Signup />} />
 
         <Route element={<RequireAuth />}>
           <Route path="dashboard" element={<Dashboard />} />

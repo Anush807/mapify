@@ -41,3 +41,21 @@ export function getUserId(req: { userId?: string }): string {
   if (!req.userId) throw HttpError.unauthorized();
   return req.userId;
 }
+
+/**
+ * Attaches `req.userId` when a valid session is present and does nothing when
+ * it isn't — for routes that behave differently for signed-in users but don't
+ * require one.
+ */
+export const optionalAuth: RequestHandler = (req, _res, next) => {
+  const cookieToken = req.cookies?.[AUTH_COOKIE] as string | undefined;
+  const header = req.headers.authorization;
+  const bearerToken = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
+
+  const token = cookieToken ?? bearerToken;
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) req.userId = payload.userId;
+  }
+  next();
+};

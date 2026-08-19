@@ -69,7 +69,7 @@ function safeParse(text: string): unknown {
 }
 
 export const api = {
-  signup: (body: { email: string; password: string; name?: string }) =>
+  signup: (body: { email: string; password: string; confirmPassword: string }) =>
     request<{ user: User }>('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
 
   login: (body: { email: string; password: string }) =>
@@ -78,6 +78,16 @@ export const api = {
   logout: () => request<{ ok: true }>('/auth/logout', { method: 'POST' }),
 
   me: () => request<{ user: User }>('/auth/me'),
+
+  verifyEmail: (token: string) =>
+    request<{ user: User }>(`/auth/verify-email?token=${encodeURIComponent(token)}`),
+
+  /** Signed in: no body needed. Signed out: pass the address. */
+  resendVerification: (email?: string) =>
+    request<{ ok: true }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify(email ? { email } : {}),
+    }),
 
   createRoadmap: (topic: string) =>
     request<{ roadmap: Roadmap }>('/roadmaps', {

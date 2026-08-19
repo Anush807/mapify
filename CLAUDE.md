@@ -127,6 +127,62 @@ else — 403 would confirm the id exists. `getRoadmap`/`deleteRoadmap`/
 - Checking a parent node checks its whole subtree — a ticked parent above
   unticked children reads as a bug.
 
+## Auth (spec/03)
+
+Email/password + Google OAuth + email verification. Auth screens render
+**outside `<Layout>`** — they are a centered card on their own, like the
+landing page, and they follow the app's theme (unlike the landing page).
+
+**A session is issued at signup, before verification** (spec §2's stated
+assumption, implemented as written). The consequences are spread across the
+app, so don't change one half alone:
+
+- signup returns a JWT cookie and `emailVerified: false`,
+- `Signup.tsx` swaps the card to `CheckEmail` in place rather than routing,
+- `VerifyEmailBanner` sits above `<main>` in `Layout` until `emailVerified`.
+
+If you ever want to hard-block unverified users, all three change together.
+
+**Verification tokens are SHA-256, not bcrypt.** Deterministic on purpose: the
+incoming token is looked up by its hash through the unique index instead of
+scanning every row. That is safe here only because the token is 32 bytes of
+`randomBytes` — never reuse this pattern for a user-chosen secret. The raw
+token exists only in the emailed link; the DB stores the hash. Single-use: the
+token fields are cleared on success.
+
+**`VerifyEmail.tsx` guards against StrictMode's double-effect** with a ref.
+Without it the second call consumes an already-spent token and the page reports
+a valid link as expired.
+
+**Two endpoints deliberately return the same thing for unknown input.**
+`resend-verification` always answers `{ ok: true }`, and login gives one
+message for both "no such user" and "wrong password" — otherwise they become
+account-existence oracles. The single intentional exception is the
+Google-only-account message on login, which spec §8 calls out.
+
+**Rate limiting** lives in `middleware/rateLimit.ts`, on login/signup/resend
+only. `RATE_LIMIT_DISABLED=1` turns it off for local testing; it is also off
+when `NODE_ENV=test`. The resend route has a second, per-account 60s cooldown in
+the service — the button countdown in the UI mirrors that number.
+
+**Google OAuth is optional config.** Without `GOOGLE_CLIENT_ID`/`SECRET` the
+strategy is never registered, `/api/auth/google` returns a clear 503, and the
+callback redirects to `/login?error=google_unavailable` rather than crashing at
+boot. Passport is stateless (`session: false`) — it only resolves the profile,
+then we issue the same JWT cookie password logins get. Find-or-create **links**
+by email, so a password account that later signs in with Google is not
+duplicated.
+
+**Email is a provider adapter layer** (`services/email/`), same shape as the AI
+layer: `resend`, `smtp`, and a non-spec `log` adapter that prints the message
+(including the verification link) to stdout. `EMAIL_PROVIDER=log` is the default
+so the whole signup → verify loop runs with no credentials. Never select it in
+production.
+
+**Ports:** spec §7's example used API `:5000` / app `:3000`. This project is API
+`:3000` / app `:5173`, so `FRONTEND_URL=http://localhost:5173` — pointing it at
+`:3000` would aim verification links at the API itself.
+
 ## Design system (spec/01)
 
 Tokens live in `frontend/src/index.css` under `:root` and `.dark`, consumed as
