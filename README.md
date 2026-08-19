@@ -113,6 +113,16 @@ burst of clicks costs one request.
 The spec calls for Recoil; this uses **Jotai** instead. Recoil is unmaintained and
 reads a React internal that React 19 removed, so it renders a blank page there.
 
+## Pages
+
+| Route | What it is |
+|---|---|
+| `/` | Public landing page — light-only, its own nav and footer |
+| `/new` | Generate a roadmap from a topic |
+| `/dashboard` | Your saved roadmaps |
+| `/roadmap/:id` | One roadmap, with progress tracking |
+| `/login`, `/signup` | Auth |
+
 ## The roadmap tree
 
 The tree is the product's signature element. Nodes are laid out in the DOM and the

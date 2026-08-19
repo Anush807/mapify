@@ -3,6 +3,7 @@ import { useSetAtom } from 'jotai';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { RequireAuth } from '@/components/RequireAuth';
+import { Landing } from '@/pages/Landing';
 import { Home } from '@/pages/Home';
 import { Dashboard } from '@/pages/Dashboard';
 import { RoadmapPage } from '@/pages/RoadmapPage';
@@ -34,8 +35,11 @@ export default function App() {
 
   return (
     <Routes>
+      {/* The landing page brings its own nav and footer, so it sits outside Layout. */}
+      <Route index element={<Landing />} />
+
       <Route element={<Layout />}>
-        <Route index element={<Home />} />
+        <Route path="new" element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
 

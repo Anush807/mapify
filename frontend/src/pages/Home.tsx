@@ -33,7 +33,7 @@ export function Home() {
       navigate(`/roadmap/${roadmap.id}`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        navigate('/login', { state: { from: '/' } });
+        navigate('/login', { state: { from: '/new' } });
         return;
       }
       setError({

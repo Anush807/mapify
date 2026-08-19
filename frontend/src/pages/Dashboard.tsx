@@ -59,7 +59,7 @@ export function Dashboard() {
           </p>
         </div>
         <Button asChild>
-          <Link to="/">
+          <Link to="/new">
             <Plus />
             New roadmap
           </Link>
@@ -88,7 +88,7 @@ export function Dashboard() {
           </EmptyHeader>
           <EmptyContent>
             <Button asChild>
-              <Link to="/">Generate your first roadmap</Link>
+              <Link to="/new">Generate your first roadmap</Link>
             </Button>
           </EmptyContent>
         </Empty>

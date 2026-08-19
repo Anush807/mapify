@@ -224,6 +224,62 @@ unmount; a global instance would fight the next route for scroll control.
 `reduce` Lenis is skipped entirely for native scroll, the path transition becomes
 `none`, and the CSS in `index.css` neutralises animation globally.
 
+## Landing page (spec/02)
+
+Public marketing page at `/`, brought in by `pages/Landing.tsx` with its own nav
+and footer — it deliberately sits **outside** `<Layout>`. The signed-in generator
+moved from `/` to **`/new`**; the app logo points at `/dashboard` when signed in
+and `/` otherwise.
+
+**Light-only, without fighting ThemeProvider.** The shell puts `.dark` on
+`<html>`, so the page root carries `.theme-light-only`, a class in `index.css`
+that re-declares the light token set on its own scope. Children then resolve
+light values normally. **Keep that block in sync with `:root`** — they are
+duplicated by necessity.
+
+**Typography reuses the app's stack** rather than introducing a marketing face:
+Bricolage Grotesque / Instrument Sans / IBM Plex Mono. Spec §2 asks for a
+characterful, slightly condensed display face, which Bricolage already is, and
+§2's "should feel like the same product, not a separate marketing site" makes
+reuse the point.
+
+**One animation budget, spent on the hero.** `HeroPathAnimation` draws an SVG
+route via `stroke-dashoffset` while four markers spring in as the line reaches
+them; the last is a flag, so the path visibly arrives. Node positions are
+**sampled from the real geometry** (`getTotalLength` / `getPointAtLength`), not
+hand-placed — hand-placed coordinates drift the instant the curve is edited.
+Labels are HTML absolutely positioned from those sampled points, so they scale
+with the type system instead of the viewBox; the endpoint label drops *below* its
+marker because it sits near the right edge. Nothing else on the page autoplays.
+
+**Everything else is scroll-triggered through one component.** `Reveal` owns the
+only easing, distance, and duration on the page, and always uses
+`viewport={{ once: true }}`. Add new sections through it rather than hand-rolling
+a `whileInView` — per-section tuning is what makes a page feel like several
+animation systems bolted together.
+
+**The example preview reuses the product**, not a lookalike: `RoadmapPreview`
+feeds static nodes through the same `collectEdges` and the same `PathConnectors`
+used by the live tree, and both it and `NodeMarker` take their state styling from
+`lib/node-marker-styles.ts` so the two can never drift. Two things to preserve if
+you touch it — they caused an infinite render loop the first time:
+
+- the `edges` array **must** be memoised (`PathConnectors` keys its measure
+  effect on that array's identity), and
+- markers must register from a `useEffect`, never an inline `ref` callback — a
+  callback ref is recreated each render and registering bumps state.
+
+Motion writes `stroke-dashoffset` as an **attribute**, not inline style; check
+`getComputedStyle`, and scope any hero assertion to `svg[data-hero-animation]`,
+since the preview's connectors also use `pathLength={1}` and its upcoming
+segments correctly sit at offset 1.
+
+**Content note:** spec §6 left the third "Why it helps" bullet as an explicit
+placeholder with "don't ship a vague third bullet just to make it three". The
+shipped third card claims roadmaps are generated per-topic rather than picked
+from a catalogue — true of this codebase, but it is filling someone else's
+placeholder and should be reviewed.
+
 ## shadcn CLI
 
 `components.json` is wired and `npx shadcn@latest add <component>` works. It

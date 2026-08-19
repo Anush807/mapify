@@ -35,7 +35,7 @@ export function Layout() {
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link
-            to="/"
+            to={user ? '/dashboard' : '/'}
             className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <RouteIcon className="size-5 text-primary" />
