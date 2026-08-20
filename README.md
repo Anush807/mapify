@@ -19,17 +19,100 @@ error fed back into the prompt, then fails with a 422.
 | Frontend | React 19 + TypeScript, Vite, Tailwind, shadcn/ui, Jotai, React Router, Lenis |
 | AI | Provider-agnostic adapters — Gemini, OpenAI, Claude, plus a keyless `mock` |
 
+## Run it with Docker
+
+The quickest way to get the whole stack — Postgres, the API, and the built app
+behind nginx — running from nothing.
+
+```bash
+cp .env.example .env      # then set JWT_SECRET to anything 16+ characters
+docker compose up --build
+```
+
+Open **http://localhost:8090**.
+
+That's it. The database schema is applied automatically on startup, and with the
+defaults (`AI_PROVIDER=mock`, `EMAIL_PROVIDER=log`) the entire product works with
+no third-party credentials at all.
+
+### What you get
+
+| Service | Address | Notes |
+|---|---|---|
+| `web` | http://localhost:8090 | The built app on nginx, which also proxies `/api` to the API |
+| `api` | http://localhost:3001 | Published only for debugging — the app reaches it internally |
+| `db` | localhost:5435 | Postgres 16, data kept in the `mapify-db-data` volume |
+
+Ports come from `.env` (`WEB_PORT`, `API_PORT`, `DB_PORT`) if any of them clash
+with something you already run. If you change `WEB_PORT`, change `APP_URL` to
+match — it's the origin used for verification links and the OAuth redirect.
+
+### Using real AI generation
+
+Set two values in `.env` and restart the API:
+
+```bash
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-key
+
+docker compose up -d api
+```
+
+Generation takes roughly 15–25 seconds; nginx is configured to wait up to 180s
+so a slow run isn't cut off mid-request.
+
+### Verification emails without an email provider
+
+`EMAIL_PROVIDER=log` prints the message instead of sending it, so the signup →
+verify loop works offline. Grab the link from the API's logs:
+
+```bash
+docker compose logs api | grep verify-email
+```
+
+Point `EMAIL_PROVIDER` at `resend` or `smtp` and fill in the matching credentials
+to send real mail.
+
+### Everyday commands
+
+```bash
+docker compose logs -f api      # follow the API (migrations, AI calls, emails)
+docker compose up -d --build    # rebuild after changing code
+docker compose down             # stop everything, keep the database
+docker compose down -v          # stop everything and delete the database
+docker compose exec db psql -U mapify -d mapify   # open a psql shell
+```
+
+### Notes
+
+- **Code changes need a rebuild.** These images bake in a production build;
+  there's no hot reload. For day-to-day development, run the app directly
+  instead — see [Getting started](#getting-started) below.
+- **`NODE_ENV=production` marks the auth cookie `Secure`.** Browsers treat
+  `http://localhost` as a secure context, so signing in works locally. If you
+  serve this from any other host over plain HTTP, the cookie is silently
+  dropped and login appears to do nothing — put it behind HTTPS, or set
+  `NODE_ENV=development` in `.env` for a throwaway deployment.
+- **Google sign-in is optional.** Leave `GOOGLE_CLIENT_ID` blank and the app
+  falls back to email/password with a clear message on the login page.
+
 ## Getting started
+
+Running the pieces directly, which is what you want while developing — hot
+reload on both sides.
 
 ### 1. Database
 
-Any Postgres 14+ works. The dev instance used here runs in Docker:
+Any Postgres 14+ works. Either start a standalone one:
 
 ```bash
 docker run -d --name mapify-postgres \
   -e POSTGRES_USER=mapify -e POSTGRES_PASSWORD=mapify -e POSTGRES_DB=mapify \
   -p 5434:5432 -v mapify-pgdata:/var/lib/postgresql/data postgres:16
 ```
+
+…or reuse the one from the Compose stack with just `docker compose up -d db`,
+and point `DATABASE_URL` at `localhost:5435`.
 
 ### 2. Backend
 
@@ -41,9 +124,15 @@ npx prisma migrate dev    # creates the schema
 npm run dev               # http://localhost:3000
 ```
 
-`AI_PROVIDER=mock` is the default in `.env` so the whole flow runs with no API
-key. Switch to `gemini`, `openai`, or `claude` and set the matching key to use a
-real model.
+`AI_PROVIDER=mock` runs the whole flow with no API key. Switch to `gemini`,
+`openai`, or `claude` and set the matching key to use a real model.
+
+Gemini takes roughly 15–20 seconds per roadmap. The model is set by
+`GEMINI_MODEL` (default `gemini-flash-latest`) — an alias, so a model retirement
+doesn't break generation the way `gemini-2.5-flash` being withdrawn did.
+
+The free tier allows only **20 requests per day, counted per model**. Once spent,
+the API returns 429 until it resets and the server log says so explicitly.
 
 ### 3. Frontend
 

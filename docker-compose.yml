@@ -1,0 +1,79 @@
+# Mapify — full local stack: Postgres, the API, and the built app behind nginx.
+# Configuration comes from the .env file next to this one (see .env.example).
+
+name: mapify
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mapify}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mapify}
+      POSTGRES_DB: ${POSTGRES_DB:-mapify}
+    ports:
+      # Exposed only so you can inspect the database with psql from the host.
+      - "${DB_PORT:-5435}:5432"
+    volumes:
+      - mapify-db-data:/var/lib/postgresql/data
+    healthcheck:
+      # The API's entrypoint runs migrations immediately, so it must not start
+      # until Postgres is actually accepting connections.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mapify} -d ${POSTGRES_DB:-mapify}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mapify}:${POSTGRES_PASSWORD:-mapify}@db:5432/${POSTGRES_DB:-mapify}?schema=public
+      # Fail loudly rather than booting with a guessable signing key.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env — at least 16 characters}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+
+      # Both are the browser-facing origin, not the API's own address: they end
+      # up in verification links and the OAuth redirect.
+      FRONTEND_URL: ${APP_URL:-http://localhost:8090}
+      CORS_ORIGIN: ${APP_URL:-http://localhost:8090}
+
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-log}
+      EMAIL_FROM: ${EMAIL_FROM:-Mapify <no-reply@mapify.local>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_VERIFICATION_EXPIRY_HOURS: ${EMAIL_VERIFICATION_EXPIRY_HOURS:-24}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:8090/api/auth/google/callback}
+    ports:
+      # Not needed by the app — nginx reaches the API over the compose network.
+      # Exposed so you can curl the API directly while debugging.
+      - "${API_PORT:-3001}:3000"
+
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8090}:80"
+
+volumes:
+  mapify-db-data:

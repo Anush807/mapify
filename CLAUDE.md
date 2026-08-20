@@ -49,6 +49,38 @@ the API plus a headless-Chrome pass over the UI flow.
 - **Tailwind is v3, not v4** — the shadcn/ui components here use the v3 config +
   CSS-variable setup.
 
+## Docker
+
+`docker compose up --build` runs Postgres + the API + the built app behind
+nginx. Config comes from a **root `.env`** (see `.env.example`), which is only
+read by Compose — `backend/.env` is for running the API outside Docker, and the
+two do not interact.
+
+Four things here are deliberate:
+
+- **The API image keeps its full `node_modules`.** `docker-entrypoint.sh` runs
+  `prisma migrate deploy` at startup, and the Prisma CLI is a devDependency that
+  also has to load the *TypeScript* `prisma.config.ts`. Pruning to production
+  deps breaks migrations at boot.
+- **`prisma generate` must run before `tsc`** in the build stage: the client is
+  emitted into `src/generated/prisma`, which is inside `rootDir`, so the
+  TypeScript build cannot resolve it otherwise.
+- **nginx sets `proxy_read_timeout 180s`.** Generation takes ~20s on Gemini and a
+  validation retry can double that; nginx's 60s default would sever the request
+  mid-generation and surface as a confusing gateway error.
+- **nginx serves the API from the same origin** (`/api` → `api:3000`), which is
+  what lets the httpOnly cookie work with no CORS or SameSite negotiation —
+  the same arrangement as the Vite dev proxy.
+
+**The `Secure` cookie trap:** the compose default is `NODE_ENV=production`, which
+makes `setAuthCookie` set `secure: true`. Browsers treat `http://localhost` as a
+secure context so local sign-in works, but on any other host over plain HTTP the
+cookie is silently dropped and login looks like it does nothing. Terminate TLS,
+or set `NODE_ENV=development` for a throwaway deployment.
+
+Images bake in a production build — there is no hot reload. Use the normal
+`npm run dev` workflow while developing.
+
 ## Prisma 7 specifics
 
 Prisma 7 moved three things that most Prisma docs and muscle memory still put
@@ -349,13 +381,50 @@ Do not hand-roll a component shadcn covers, and prefer `gap-*` over `space-y-*`,
 
 ## The mock AI provider
 
-`AI_PROVIDER=mock` (the default in `.env`) returns a valid roadmap with no API
-key, so the full flow is runnable offline. It is not in the spec — it exists
-because none of the real providers had keys available. `MOCK_FORCE_INVALID=1`
+`AI_PROVIDER=mock` returns a valid roadmap with no API key, so the full flow is
+runnable offline (`.env` currently selects `gemini`). It is not in the spec — it exists so
+the flow is runnable without provider credentials. `MOCK_FORCE_INVALID=1`
 makes it emit junk, which is how the retry-then-422 path gets exercised.
 
-Real-provider models: Gemini `gemini-2.5-flash`, OpenAI `gpt-4o-mini`, Claude
-`claude-opus-5`. None of the three has been run against a live key.
+## Gemini (the configured provider)
+
+Model comes from **`GEMINI_MODEL`**, defaulting to the `gemini-flash-latest`
+alias. It is configurable because pinned ids expire: `gemini-2.5-flash` is
+retired and the API now 404s it, naming `gemini-3.6-flash` as its replacement.
+Pin a dated id when you need reproducibility, but expect to revisit it.
+
+Verified end to end in the browser against a live key: generation, validation,
+persistence, the tree render, progress, and the dashboard all work.
+Two things about this model shape the adapter:
+
+- **It thinks before answering.** Thinking tokens are billed against
+  `maxOutputTokens` but excluded from `response.text`, so too small a ceiling
+  yields truncated JSON or nothing at all, with no obvious cause. A measured run
+  used ~830 thinking + ~2,280 output tokens; `MAX_OUTPUT_TOKENS` is 16,384 to
+  leave real headroom. Expect ~20s per generation.
+- **`finishReason` is checked before the text is read.** Otherwise a
+  `MAX_TOKENS` truncation surfaces one layer up as "not parseable JSON", which
+  points at the prompt rather than the token ceiling and burns the single
+  validation retry on something retrying cannot fix.
+
+**Transient failures are retried inside the adapter** — separate from
+`roadmap.service`'s validation retry, which re-prompts because the output was
+wrong rather than because the call never landed. 503 "high demand" is common on
+this model. All attempts share one `AbortSignal`, so retries can't multiply the
+timeout budget. The API's `RetryInfo.retryDelay` is honoured, and a hint longer
+than 5s fails fast instead of holding the request open — that case is a spent
+daily quota, which waiting inside one request will never clear.
+
+**The free tier allows 20 requests/day, counted per model**
+(`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: "20"`), and it
+is easy to exhaust while testing. The log then reads `Gemini quota or rate limit
+exceeded (...FreeTier)` while the client still gets the generic 502. Because the
+count is per model, changing `GEMINI_MODEL` moves you to a fresh daily bucket —
+useful to know, but not a way around the limit. `AI_PROVIDER=mock` keeps the app
+fully usable offline.
+
+Other provider models: OpenAI `gpt-4o-mini`, Claude `claude-opus-5`. Neither has
+been run against a live key.
 
 ## Environment
 

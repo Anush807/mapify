@@ -21,6 +21,13 @@ const EnvSchema = z.object({
 
   AI_PROVIDER: z.enum(['gemini', 'openai', 'claude', 'mock']).default('gemini'),
   GEMINI_API_KEY: blankAsUndefined(z.string().optional()),
+  /**
+   * An alias by default, so a model retirement doesn't break generation the way
+   * `gemini-2.5-flash` did. Pin a dated id here when you need reproducibility —
+   * note the free tier's request quota is counted per model, so switching this
+   * moves you to a fresh daily bucket.
+   */
+  GEMINI_MODEL: blankAsUndefined(z.string().default('gemini-flash-latest')),
   OPENAI_API_KEY: blankAsUndefined(z.string().optional()),
   ANTHROPIC_API_KEY: blankAsUndefined(z.string().optional()),
 

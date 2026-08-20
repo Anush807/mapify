@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 332 372" width="100%" height="100%">
+  <g fill="none" stroke="#F04E23" stroke-width="44">
+    <!-- Main S-shaped path connecting the two rings -->
+    <path d="M 244 66 H 126 A 60 60 0 0 0 126 186 H 206 A 60 60 0 0 1 206 306 H 88" stroke-linecap="butt" />
+
+    <!-- Top-right ring -->
+    <circle cx="266" cy="66" r="44" />
+
+    <!-- Bottom-left ring -->
+    <circle cx="66" cy="306" r="44" />
+  </g>
+</svg>

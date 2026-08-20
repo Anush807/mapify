@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#FAFAFA" rx="32" />
+
+  <!-- Logo Path / Structure -->
+  <g fill="none" stroke="#FF523B" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Main S-route path -->
+    <path 
+      d="M 350 180 
+         H 230 
+         C 180 180, 180 256, 230 256 
+         H 282 
+         C 332 256, 332 332, 282 332 
+         H 162" 
+      stroke-width="36" 
+    />
+
+    <!-- Top-Right Endpoint Node -->
+    <circle cx="350" cy="180" r="32" stroke-width="26" fill="#FAFAFA" />
+
+    <!-- Bottom-Left Endpoint Node -->
+    <circle cx="162" cy="332" r="32" stroke-width="26" fill="#FAFAFA" />
+  </g>
+</svg>
