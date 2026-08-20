@@ -145,6 +145,48 @@ npm run dev               # http://localhost:5173
 Vite proxies `/api` to `localhost:3000`, so the app is same-origin in dev and the
 auth cookie needs no CORS negotiation.
 
+## Deploying
+
+The app runs on **https://www.mapify.info** (Vercel) and the API on its own
+subdomain, **https://api.mapify.info**. Those are different *origins* but the
+same *site* (`mapify.info`), which is why the httpOnly auth cookie keeps working
+with `SameSite=Strict` — CORS is required, `SameSite=None` is not.
+
+### 1. API — any container host
+
+`backend/Dockerfile` is the deployable unit; it applies migrations on startup.
+Render, Railway, Fly.io and a plain VPS all work. Point `api.mapify.info` at it
+and terminate TLS there.
+
+Set the environment from **`backend/.env.production.example`**. Three values are
+easy to get wrong:
+
+| Variable | Value | Why |
+|---|---|---|
+| `CORS_ORIGIN` | `https://www.mapify.info` | Comma-separated, **no quotes** — dotenv keeps quotes and they end up inside the split values, so nothing matches |
+| `FRONTEND_URL` | `https://www.mapify.info` | A single URL, not a list: it's concatenated into verification links |
+| `GOOGLE_CALLBACK_URL` | `https://api.mapify.info/api/auth/google/callback` | On the **API** origin, and must match the Google console verbatim |
+
+### 2. App — Vercel
+
+Set one build-time variable, then redeploy:
+
+```
+VITE_API_URL=https://api.mapify.info/api
+```
+
+Without it the app calls a relative `/api`, which 404s on Vercel. `vercel.json`
+supplies the SPA rewrite so deep links (`/dashboard`, `/verify-email?token=…`)
+serve `index.html` instead of a 404 — without it, **every verification email link
+is broken**.
+
+### 3. Third-party consoles
+
+- **Google Cloud** → authorised redirect URI `https://api.mapify.info/api/auth/google/callback`,
+  authorised JavaScript origin `https://www.mapify.info`.
+- **Resend** → verify the `mapify.info` domain before sending from
+  `no-reply@mapify.info`, or delivery silently fails.
+
 ## Backend scripts
 
 | Command | What it does |

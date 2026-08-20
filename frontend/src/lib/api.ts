@@ -1,6 +1,13 @@
 import type { Roadmap, RoadmapSummary, User } from './types';
 
-const BASE_URL = '/api';
+/**
+ * Relative by default, which is what dev (Vite proxy) and the Docker stack
+ * (nginx) both want. Set VITE_API_URL at build time when the API lives on its
+ * own origin — e.g. https://api.mapify.info/api in production.
+ */
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+
+const BASE_URL = API_BASE_URL;
 
 /** Mirrors the backend's error envelope so callers can branch on `code`. */
 export class ApiError extends Error {

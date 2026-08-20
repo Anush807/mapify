@@ -14,7 +14,8 @@ export function createApp() {
   // Vite dev server on :5173 to the API on :3000.
   app.use(
     cors({
-      origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+      // Already parsed and validated into an array by config/env.ts.
+      origin: env.CORS_ORIGIN,
       credentials: true,
     }),
   );

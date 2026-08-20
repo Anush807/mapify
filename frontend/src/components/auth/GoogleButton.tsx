@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from '@/lib/api';
 
 /** Brand mark stays in its own colours — Google's guidelines require it. */
 function GoogleMark() {
@@ -26,7 +27,8 @@ function GoogleMark() {
 
 /**
  * A real link, not a fetch: OAuth is a full-page redirect, so the browser has
- * to navigate for the callback to set the session cookie.
+ * to navigate for the callback to set the session cookie. It targets the API
+ * origin directly, which in production is a different host from the app.
  */
 export function GoogleButton({ label, disabled }: { label: string; disabled?: boolean }) {
   return (
@@ -37,7 +39,7 @@ export function GoogleButton({ label, disabled }: { label: string; disabled?: bo
           {label}
         </span>
       ) : (
-        <a href="/api/auth/google">
+        <a href={`${API_BASE_URL}/auth/google`}>
           <GoogleMark />
           {label}
         </a>
